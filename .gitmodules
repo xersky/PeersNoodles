@@ -1,0 +1,3 @@
+[submodule "GenesisVM"]
+	path = GenesisVM
+	url = https://github.com/xersky/GenesisVM
