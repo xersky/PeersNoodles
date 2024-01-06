@@ -57,6 +57,15 @@ public class PeerNode {
         closeConnection();
     }
 
+    public static byte[] hexStringParser(String hexString) {
+        String byteCode = hexString.substring(hexString.indexOf("x") + 1, hexString.length());
+        byte[] byteArray = new byte[byteCode.length() / 2];
+
+        for(int i = 0, j = 0; i < byteCode.length() / 2; byteArray[i++] = (byte) Integer.parseInt(byteCode.substring(j++, ++j), 16));
+
+        return byteArray;
+    }
+
     public void closeConnection() throws IOException {
         input.close();
         output.close();
@@ -70,8 +79,14 @@ public class PeerNode {
     }
 
     public static void main(String[] args) throws IOException {
-        PeerNode node = new PeerNode();
-        node.startServer(42069);
+        
+        String hex = "0x0001020304090801";
+
+        byte[] byteArray = hexStringParser(hex);
+
+        for (byte b : byteArray) {
+            System.out.println(b);
+        }
     }
 
 
