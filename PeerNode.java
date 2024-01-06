@@ -5,6 +5,10 @@ import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Scanner;
 
 public class PeerNode {
@@ -66,6 +70,48 @@ public class PeerNode {
         return byteArray;
     }
 
+    public static List<Map<String,String>> jsonParser(String json) {
+        List<Map<String,String>> jsonContent = new ArrayList<Map<String,String>>();
+        int index = 0;
+        int leftKeyPointer;
+        int rightKeyPointer;
+        int leftValuePointer;
+        int rightValuePointer;
+        
+        while (index >= 0 && json.charAt(index) != ']') {
+            Map<String,String> keyValueMap = new HashMap<String,String>();
+            
+            index = json.indexOf('{', index);
+            if(index != -1) {
+                while(true) {
+                    index = json.indexOf('"', index);
+                    if(index == -1) break;
+                    leftKeyPointer = index + 1;
+                    rightKeyPointer = json.indexOf('"', ++index);
+                    index = json.indexOf(':', index);
+
+                    index = json.indexOf('"', index);
+                    leftValuePointer = index + 1;
+                    rightValuePointer = json.indexOf('"', ++index);
+                    index = rightValuePointer;
+
+                    keyValueMap.put(json.substring(leftKeyPointer,rightKeyPointer), json.substring(leftValuePointer,rightValuePointer));
+                    index++;
+                    if(json.charAt(index) == '}') {
+                        break;
+                    };
+                }
+                jsonContent.add(keyValueMap);
+            } else {
+
+                break;
+            }
+            
+        }
+
+        return jsonContent;
+    }
+
     public void closeConnection() throws IOException {
         input.close();
         output.close();
@@ -80,13 +126,29 @@ public class PeerNode {
 
     public static void main(String[] args) throws IOException {
         
-        String hex = "0x0001020304090801";
+/*         String hex = "0x0001020304090801";
 
         byte[] byteArray = hexStringParser(hex);
 
         for (byte b : byteArray) {
             System.out.println(b);
+        } */
+
+        String testJson = "[{ \"bytecode\": \"0x00123123123123\"} , {\"bytecode\": \"0x01231231231231231230\" }]";
+
+        List<Map<String,String>> mapping= jsonParser(testJson);
+
+        for (Map<String,String> map : mapping) {
+            String bytecode = map.get("bytecode");
+            System.out.println("bytecode: " + bytecode);
+            byte[] byteArray = hexStringParser(map.get("bytecode"));
+            for (byte b : byteArray) {
+                System.out.println(b);
+            }
         }
+
+
+
     }
 
 
