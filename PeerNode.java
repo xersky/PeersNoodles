@@ -1,4 +1,6 @@
 import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
@@ -70,6 +72,18 @@ public class PeerNode {
         return byteArray;
     }
 
+
+    public static String readFromFile(String filename) throws FileNotFoundException {
+        Scanner sc = new Scanner(new FileReader(filename));
+        StringBuilder fileContent = new StringBuilder();
+
+        while (sc.hasNext()) {
+            fileContent.append(sc.next());
+        }
+
+        return fileContent.toString();
+    }
+
     public static List<Map<String,String>> jsonParser(String json) {
         List<Map<String,String>> jsonContent = new ArrayList<Map<String,String>>();
         int index = 0;
@@ -126,16 +140,7 @@ public class PeerNode {
 
     public static void main(String[] args) throws IOException {
         
-/*         String hex = "0x0001020304090801";
-
-        byte[] byteArray = hexStringParser(hex);
-
-        for (byte b : byteArray) {
-            System.out.println(b);
-        } */
-
-        String testJson = "[{ \"bytecode\": \"0x00123123123123\"} , {\"bytecode\": \"0x01231231231231231230\" }]";
-
+        String testJson = readFromFile("json.json");
         List<Map<String,String>> mapping= jsonParser(testJson);
 
         for (Map<String,String> map : mapping) {
@@ -146,10 +151,5 @@ public class PeerNode {
                 System.out.println(b);
             }
         }
-
-
-
     }
-
-
 }

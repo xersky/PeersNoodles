@@ -1,0 +1,10 @@
+[
+    {
+        "bytecode" : "0x00123123123123",
+        "messageType" : "Deploy"
+    },
+    {
+        "bytecode" : "0x00123123123123",
+        "messageType" : "Execute"
+    }
+]
