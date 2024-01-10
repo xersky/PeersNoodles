@@ -73,7 +73,7 @@ public class PeerNode {
 
     public static void main(String[] args) throws IOException {
         
-        String testJson = Utils.readFromFile("json.json");
+        String testJson = Utils.readFromFile("Transactions.json");
         List<Map<String,String>> mapping = Utils.jsonParser(testJson);
         VirtualMachine vm = new VirtualMachine();
 
