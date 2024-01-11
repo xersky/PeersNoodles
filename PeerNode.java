@@ -73,7 +73,7 @@ public class PeerNode {
 
     public static void main(String[] args) throws IOException {
         
-        String testJson = Utils.readFromFile("Transactions.json");
+        /* String testJson = Utils.readFromFile("Transactions.json");
         List<Map<String,String>> mapping = Utils.jsonParser(testJson);
         VirtualMachine vm = new VirtualMachine();
 
@@ -85,6 +85,10 @@ public class PeerNode {
                 byte[] byteArray = Utils.hexStringParser(byteCode);
                 vm.byteInterpreter(byteArray);
             }
-        }
+        } */
+        byte[] bytecode = {00,00,00,00,04,00,00,00,00,02,0x1D};
+
+        VirtualMachine vm = new VirtualMachine();
+        vm.byteInterpreter(bytecode);
     }
 }
