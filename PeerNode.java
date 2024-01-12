@@ -5,8 +5,6 @@ import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.UnknownHostException;
-import java.util.List;
-import java.util.Map;
 import java.util.Scanner;
 
 public class PeerNode {
@@ -71,24 +69,11 @@ public class PeerNode {
         return response;
     }
 
-    public static void main(String[] args) throws IOException {
-        
-        /* String testJson = Utils.readFromFile("Transactions.json");
-        List<Map<String,String>> mapping = Utils.jsonParser(testJson);
-        VirtualMachine vm = new VirtualMachine();
+    public static void main(String[] args) {
 
-        for (Map<String,String> map : mapping) {
-            String messageType = map.get("messageType");
-            if("Execute".equals(messageType)) {
-                String byteCode = map.get("bytecode");
-                System.out.println(byteCode);
-                byte[] byteArray = Utils.hexStringParser(byteCode);
-                vm.byteInterpreter(byteArray);
-            }
-        } */
         byte[] bytecode = {00,00,00,00,04,00,00,00,00,02,0x1D};
-
         VirtualMachine vm = new VirtualMachine();
+
         vm.byteInterpreter(bytecode);
     }
 }
