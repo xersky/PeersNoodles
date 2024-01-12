@@ -69,11 +69,11 @@ public class PeerNode {
         return response;
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
 
-        byte[] bytecode = {00,00,00,00,04,00,00,00,00,02,0x1D};
+        byte[] bytecode = {00,00,00,00,04,0x1C,0x08};
         VirtualMachine vm = new VirtualMachine();
 
-        vm.byteInterpreter(bytecode);
+        System.out.println(vm.byteInterpreter(bytecode));
     }
 }
