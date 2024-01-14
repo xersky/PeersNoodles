@@ -5,6 +5,8 @@ import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.util.List;
+import java.util.Map;
 import java.util.Scanner;
 
 public class PeerNode {
@@ -69,11 +71,49 @@ public class PeerNode {
         return response;
     }
 
+    public static Result<ExecuteResult, DeployResult> transactionRunner(Map<String,String> transaction) throws Exception{
+        VirtualMachine vm = new VirtualMachine();
+        String messageType = transaction.get("messageType");
+
+        String byteCode = transaction.get("bytecode");
+        System.out.println(byteCode);
+        System.out.println(messageType);
+        byte[] byteArray = Utils.hexStringParser(byteCode);
+
+        switch (messageType) { 
+            case "Execute":
+                try {
+                    return Result.fromResult(ExecuteResult.fromResult(vm.byteInterpreter(byteArray)));
+                } catch (Exception e) {
+                    return Result.fromResult(ExecuteResult.fromError(e.getMessage()));
+                }
+
+            case "Deploy":
+                return null;
+        
+            default:
+                throw new Exception("No transaction found!");
+        }
+    }
+
+    public static int transactionsRunner(String transactionsFilename) throws Exception {
+        String transactionJson = Utils.readFromFile(transactionsFilename);
+        List<Map<String,String>> transactions = Utils.jsonParser(transactionJson);
+
+        for (Map<String,String> transaction : transactions) {
+            transactionRunner(transaction);
+        }
+
+        return Utils.readFromFile("State.json").hashCode();
+    }
+
     public static void main(String[] args) throws Exception {
 
-        byte[] bytecode = {00,00,00,00,04,0x1C,0x08};
+/*         byte[] bytecode = {00,00,00,00,04,0x1C,0x08};
         VirtualMachine vm = new VirtualMachine();
 
-        System.out.println(vm.byteInterpreter(bytecode));
+        System.out.println(vm.byteInterpreter(bytecode)); */
+
+        System.out.println(transactionsRunner("Transactions.json"));
     }
 }
