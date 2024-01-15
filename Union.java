@@ -3,7 +3,7 @@ public class Union<TLeft, TRight> {
     TLeft left;
     TRight right;
 
-    private Union(TLeft result, TRight right){
+    protected Union(TLeft result, TRight right){
         this.left = result;
         this.right = right;
     }
