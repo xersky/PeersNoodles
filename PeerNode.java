@@ -5,6 +5,7 @@ import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
@@ -71,40 +72,56 @@ public class PeerNode {
         return response;
     }
 
-    public static Result<ExecuteResult, DeployResult> transactionRunner(Map<String,String> transaction) throws Exception{
+    public static Union<ExecuteResult, DeployResult> transactionRunner(Map<String,String> transaction, String databaseFilename) throws Exception{
         VirtualMachine vm = new VirtualMachine();
         String messageType = transaction.get("messageType");
-
         String byteCode = transaction.get("bytecode");
+
         System.out.println(byteCode);
         System.out.println(messageType);
+
         byte[] byteArray = Utils.hexStringParser(byteCode);
+        String state = new String(Utils.readFromFile(databaseFilename));
+        Map<String,String> stateMap = Utils.jsonParser(state).get(0);
 
         switch (messageType) { 
             case "Execute":
                 try {
-                    return Result.fromResult(ExecuteResult.fromResult(vm.byteInterpreter(byteArray)));
+                    return Union.fromLeft(ExecuteResult.fromResult(vm.byteInterpreter(byteArray)));
                 } catch (Exception e) {
-                    return Result.fromResult(ExecuteResult.fromError(e.getMessage()));
+                    return Union.fromLeft(ExecuteResult.fromError(e.getMessage()));
                 }
 
             case "Deploy":
-                return null;
-        
+                try {
+                    stateMap.put(String.valueOf(byteCode.hashCode()), byteCode);
+                    state = Utils.jsonSerializer(stateMap);
+                    PrintWriter out = new PrintWriter(databaseFilename); 
+                    out.println(state.toString());
+                    out.close();
+                    return Union.fromRight(DeployResult.fromResult(byteArray.hashCode()));
+                } catch (Exception e) {
+                    return Union.fromRight(DeployResult.fromError(e.getMessage()));
+                }
+
             default:
                 throw new Exception("No transaction found!");
         }
     }
 
-    public static int transactionsRunner(String transactionsFilename) throws Exception {
+    public static int transactionsRunner(String transactionsFilename, String databaseFilename) throws Exception {
         String transactionJson = Utils.readFromFile(transactionsFilename);
         List<Map<String,String>> transactions = Utils.jsonParser(transactionJson);
+        var receipts = new ArrayList<Union<ExecuteResult,DeployResult>>(); 
 
         for (Map<String,String> transaction : transactions) {
-            transactionRunner(transaction);
+            receipts.add(transactionRunner(transaction, databaseFilename));
         }
+        
+        //TODO add receipts to receipts.json
 
-        return Utils.readFromFile("State.json").hashCode();
+
+        return Utils.readFromFile("Database.json").hashCode();
     }
 
     public static void main(String[] args) throws Exception {
@@ -114,6 +131,6 @@ public class PeerNode {
 
         System.out.println(vm.byteInterpreter(bytecode)); */
 
-        System.out.println(transactionsRunner("Transactions.json"));
+        System.out.println(transactionsRunner("Transactions.json", "Database.json"));
     }
 }
