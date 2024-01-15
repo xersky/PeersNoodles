@@ -1,4 +1,4 @@
-public class DeployResult extends Result<Integer, String>{
+public class DeployResult extends Union<Integer, String>{
 
     public DeployResult(Integer result, String error) {
         super(result, error);

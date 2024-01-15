@@ -1,6 +1,6 @@
 import java.util.Optional;
 
-public class ExecuteResult extends Result<Optional<Integer>, String>{
+public class ExecuteResult extends Union<Optional<Integer>, String>{
 
     public ExecuteResult(Optional<Integer> result, String error) {
         super(result, error);
