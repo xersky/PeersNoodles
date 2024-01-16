@@ -86,6 +86,7 @@ public class PeerNode {
 
         switch (messageType) { 
             case "Execute":
+                System.out.println("Executing");
                 try {
                     return Union.fromLeft(ExecuteResult.fromResult(vm.byteInterpreter(byteArray)));
                 } catch (Exception e) {
@@ -93,11 +94,12 @@ public class PeerNode {
                 }
 
             case "Deploy":
+                System.out.println("Deploying");
                 try {
                     stateMap.put(String.valueOf(byteCode.hashCode()), byteCode);
                     state = Utils.jsonSerializer(stateMap);
                     PrintWriter out = new PrintWriter(databaseFilename); 
-                    out.println(state.toString());
+                    out.println(state);
                     out.close();
                     return Union.fromRight(DeployResult.fromResult(byteArray.hashCode()));
                 } catch (Exception e) {
@@ -109,17 +111,38 @@ public class PeerNode {
         }
     }
 
-    public static int transactionsRunner(String transactionsFilename, String databaseFilename) throws Exception {
+    public static int allTransactionsRunner(String transactionsFilename, String databaseFilename) throws Exception {
         String transactionJson = Utils.readFromFile(transactionsFilename);
         List<Map<String,String>> transactions = Utils.jsonParser(transactionJson);
         var receipts = new ArrayList<Union<ExecuteResult,DeployResult>>(); 
 
-        for (Map<String,String> transaction : transactions) {
+        for(Map<String,String> transaction : transactions) {
             receipts.add(transactionRunner(transaction, databaseFilename));
+        }
+
+
+        for(Union<ExecuteResult,DeployResult> union : receipts) {
+            if(union.isLeft()) {
+                if(union.getLeft().isSuccess()) {
+                    System.out.println("isSuccess: " + union.getLeft().isSuccess());
+                    System.out.println("Execute Result: " + union.getLeft().getResult());
+                } else {
+                    System.out.println("isSuccess: " + union.getLeft().isSuccess());
+                    System.out.println("Execute Result: " + union.getLeft().getError());
+                }
+            } else {
+                if(union.getRight().isSuccess()) {
+                    System.out.println("isSuccess: " + union.getRight().isSuccess());
+                    System.out.println("Deploy Result: " + union.getRight().getResult());
+                } else {
+                    System.out.println("isSuccess: " + union.getRight().isSuccess());
+                    System.out.println("Deploy Result: " + union.getRight().getError());
+                }
+            }
         }
         
         //TODO add receipts to receipts.json
-
+        
 
         return Utils.readFromFile("Database.json").hashCode();
     }
@@ -131,6 +154,6 @@ public class PeerNode {
 
         System.out.println(vm.byteInterpreter(bytecode)); */
 
-        System.out.println(transactionsRunner("Transactions.json", "Database.json"));
+        System.out.println(allTransactionsRunner("Transactions.json", "Database.json"));
     }
 }
