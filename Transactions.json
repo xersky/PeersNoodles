@@ -1,9 +1,11 @@
 [
     {
+        "id" : "0",
         "bytecode" : "0x09",
         "messageType" : "Deploy"
     },
     {
+        "id" : "1",
         "bytecode" : "0x1B000000451B0000001700000000170308",
         "messageType" : "Execute"
     }

@@ -1,0 +1,13 @@
+[
+    {
+        "id" : "0",
+        "isSuccess" : "true",
+        "result" : "resultTest" 
+    },
+    {
+        "id" : "1",
+        "isSuccess" : "false",
+        "result" : "exception" 
+    }
+
+]
