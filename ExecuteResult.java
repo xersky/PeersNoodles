@@ -5,16 +5,26 @@ public class ExecuteResult extends Union<Optional<Integer>, String>{
     int id;
     String transactionType;
 
-    public ExecuteResult(Optional<Integer> result, String error) {
+    public ExecuteResult(int id, Optional<Integer> result, String error) {
         super(result, error);
+        this.id = id;
+        this.transactionType = "Execute";
     }
 
-    public static ExecuteResult fromResult(Optional<Integer> result){
-        return new ExecuteResult(result, null);
+    public static ExecuteResult fromResult(int id, Optional<Integer> result){
+        return new ExecuteResult(id, result, null);
     }
 
-    public static ExecuteResult fromError(String error){
-        return new ExecuteResult(null, error);
+    public static ExecuteResult fromError(int id, String error){
+        return new ExecuteResult(id, null, error);
+    }
+
+    public int getId() {
+        return this.id;
+    }
+
+    public String getTransactionType() {
+        return this.transactionType;
     }
 
     public Optional<Integer> getResult() {
