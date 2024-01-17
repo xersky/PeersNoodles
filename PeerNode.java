@@ -6,6 +6,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
@@ -72,8 +73,9 @@ public class PeerNode {
         return response;
     }
 
-    public static Union<ExecuteResult, DeployResult> transactionRunner(Map<String,String> transaction, String databaseFilename) throws Exception{
+    public static Union<ExecuteResult, DeployResult> transactionRunner(Map<String,String> transaction, String databaseFilename) throws Exception {
         VirtualMachine vm = new VirtualMachine();
+        String id = transaction.get("id");
         String messageType = transaction.get("messageType");
         String byteCode = transaction.get("bytecode");
 
@@ -81,29 +83,29 @@ public class PeerNode {
         System.out.println(messageType);
 
         byte[] byteArray = Utils.hexStringParser(byteCode);
-        String state = new String(Utils.readFromFile(databaseFilename));
-        Map<String,String> stateMap = Utils.jsonParser(state).get(0);
+        String databaseString = new String(Utils.readFromFile(databaseFilename));
+        Map<String,String> databaseMap = Utils.jsonParser(databaseString).get(0);
 
         switch (messageType) { 
             case "Execute":
                 System.out.println("Executing");
                 try {
-                    return Union.fromLeft(ExecuteResult.fromResult(vm.byteInterpreter(byteArray)));
+                    return Union.fromLeft(ExecuteResult.fromResult(Integer.parseInt(id), vm.byteInterpreter(byteArray)));
                 } catch (Exception e) {
-                    return Union.fromLeft(ExecuteResult.fromError(e.getMessage()));
+                    return Union.fromLeft(ExecuteResult.fromError(Integer.parseInt(id), e.getMessage()));
                 }
 
             case "Deploy":
                 System.out.println("Deploying");
                 try {
-                    stateMap.put(String.valueOf(byteCode.hashCode()), byteCode);
-                    state = Utils.jsonSerializer(stateMap);
+                    databaseMap.put(String.valueOf(byteCode.hashCode()), byteCode);
+                    databaseString = Utils.jsonSerializer(databaseMap);
                     PrintWriter out = new PrintWriter(databaseFilename); 
-                    out.println(state);
+                    out.println(databaseString);
                     out.close();
-                    return Union.fromRight(DeployResult.fromResult(byteArray.hashCode()));
+                    return Union.fromRight(DeployResult.fromResult(Integer.parseInt(id), byteArray.hashCode()));
                 } catch (Exception e) {
-                    return Union.fromRight(DeployResult.fromError(e.getMessage()));
+                    return Union.fromRight(DeployResult.fromError(Integer.parseInt(id), e.getMessage()));
                 }
 
             default:
@@ -111,39 +113,46 @@ public class PeerNode {
         }
     }
 
-    public static int allTransactionsRunner(String transactionsFilename, String databaseFilename) throws Exception {
+    public static int allTransactionsRunner(String transactionsFilename, String databaseFilename, String receiptsFilename) throws Exception {
         String transactionJson = Utils.readFromFile(transactionsFilename);
         List<Map<String,String>> transactions = Utils.jsonParser(transactionJson);
-        var receipts = new ArrayList<Union<ExecuteResult,DeployResult>>(); 
+        var receipts = new ArrayList<Union<ExecuteResult,DeployResult>>();
+        List<Map<String,String>> listOfReceipts = new ArrayList<Map<String,String>>();
 
         for(Map<String,String> transaction : transactions) {
             receipts.add(transactionRunner(transaction, databaseFilename));
         }
 
-
         for(Union<ExecuteResult,DeployResult> union : receipts) {
+            Map<String,String> mapOfReceipt = new HashMap<String,String>();
             if(union.isLeft()) {
-                if(union.getLeft().isSuccess()) {
-                    System.out.println("isSuccess: " + union.getLeft().isSuccess());
-                    System.out.println("Execute Result: " + union.getLeft().getResult());
-                } else {
-                    System.out.println("isSuccess: " + union.getLeft().isSuccess());
-                    System.out.println("Execute Result: " + union.getLeft().getError());
-                }
+                mapOfReceipt.put("id", String.valueOf(union.getLeft().getId()));
+                mapOfReceipt.put("transactionType", union.getLeft().getTransactionType());
+                mapOfReceipt.put("isSuccess", union.getLeft().isSuccess().toString());
+                if(union.getLeft().isSuccess()) mapOfReceipt.put("result", union.getLeft().getResult().toString());
+                else mapOfReceipt.put("result", union.getLeft().getError());
             } else {
-                if(union.getRight().isSuccess()) {
-                    System.out.println("isSuccess: " + union.getRight().isSuccess());
-                    System.out.println("Deploy Result: " + union.getRight().getResult());
-                } else {
-                    System.out.println("isSuccess: " + union.getRight().isSuccess());
-                    System.out.println("Deploy Result: " + union.getRight().getError());
-                }
+                mapOfReceipt.put("id", String.valueOf(union.getRight().getId()));
+                mapOfReceipt.put("transactionType", union.getRight().getTransactionType());
+                mapOfReceipt.put("isSuccess", union.getRight().isSuccess().toString());
+                if(union.getRight().isSuccess()) mapOfReceipt.put("result", union.getRight().getResult().toString()); 
+                else mapOfReceipt.put("result", union.getRight().getError());
             }
+            listOfReceipts.add(mapOfReceipt);
         }
-        
-        //TODO add receipts to receipts.json
-        
 
+        String receiptsString = Utils.jsonArraySerializer(listOfReceipts);
+
+        try {
+            PrintWriter out = new PrintWriter(receiptsFilename); 
+            out.println(receiptsString);
+            out.close();
+        } catch (Exception e) {
+            throw new Exception(e.getMessage());
+        }
+
+        System.out.println(receiptsString);
+        
         return Utils.readFromFile("Database.json").hashCode();
     }
 
@@ -154,6 +163,6 @@ public class PeerNode {
 
         System.out.println(vm.byteInterpreter(bytecode)); */
 
-        System.out.println(allTransactionsRunner("Transactions.json", "Database.json"));
+        System.out.println(allTransactionsRunner("Transactions.json", "Database.json", "Receipts.json"));
     }
 }

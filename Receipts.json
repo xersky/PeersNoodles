@@ -1,13 +1,1 @@
-[
-    {
-        "id" : "0",
-        "isSuccess" : "true",
-        "result" : "resultTest" 
-    },
-    {
-        "id" : "1",
-        "isSuccess" : "false",
-        "result" : "exception" 
-    }
-
-]
+[{"transactionType":"Deploy","result":"189568618","id":"0","isSuccess":"true"},{"transactionType":"Execute","result":"Optional[69]","id":"1","isSuccess":"true"}]
