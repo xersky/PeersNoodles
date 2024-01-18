@@ -84,7 +84,7 @@ public class PeerNode {
 
         byte[] byteArray = Utils.hexStringParser(byteCode);
         String databaseString = new String(Utils.readFromFile(databaseFilename));
-        Map<String,String> databaseMap = Utils.jsonParser(databaseString).get(0);
+        Map<String,String> databaseMap = Utils.jsonParser(databaseString);
 
         switch (messageType) { 
             case "Execute":
@@ -115,7 +115,7 @@ public class PeerNode {
 
     public static int allTransactionsRunner(String transactionsFilename, String databaseFilename, String receiptsFilename) throws Exception {
         String transactionJson = Utils.readFromFile(transactionsFilename);
-        List<Map<String,String>> transactions = Utils.jsonParser(transactionJson);
+        List<Map<String,String>> transactions = Utils.jsonArrayParser(transactionJson);
         var receipts = new ArrayList<Union<ExecuteResult,DeployResult>>();
         List<Map<String,String>> listOfReceipts = new ArrayList<Map<String,String>>();
 
@@ -153,7 +153,7 @@ public class PeerNode {
 
         System.out.println(receiptsString);
         
-        return Utils.readFromFile("Database.json").hashCode();
+        return Utils.readFromFile(databaseFilename).hashCode();
     }
 
     public static void main(String[] args) throws Exception {
@@ -162,6 +162,13 @@ public class PeerNode {
         VirtualMachine vm = new VirtualMachine();
 
         System.out.println(vm.byteInterpreter(bytecode)); */
+        
+/*         String json = "{\"transactionType\":\"Deploy\",\"result\":\"189568618\",\"id\":\"0\",\"isSuccess\":\"true\"}";
+
+        Map<String,String> keyValueMap = Utils.jsonParser(json);
+
+        System.out.println(keyValueMap); */
+        
 
         System.out.println(allTransactionsRunner("Transactions.json", "Database.json", "Receipts.json"));
     }
