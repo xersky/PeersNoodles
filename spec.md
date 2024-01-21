@@ -1,7 +1,7 @@
 # Syncing with other nodes
 
 - trying to sync and retreive the state, receipts and database from nodes that are acheiving consensus
-- sending three types of messages to these nodes:
+- sending four types of messages to these nodes:
     - ping: 
         - to retreive count of transactions or count of receipts
         - and the hash of both the state and database
