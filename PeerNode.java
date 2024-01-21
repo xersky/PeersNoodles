@@ -1,4 +1,5 @@
 import java.io.BufferedReader;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
@@ -71,6 +72,25 @@ public class PeerNode {
         output.println(message);
         String response = input.readLine();
         return response;
+    }
+
+    public String ping(String transactionsFilename, String stateFilename, String databaseFilename) throws FileNotFoundException {
+        
+        String transactionsParsed = Utils.readFromFile(transactionsFilename);
+        String stateParsed  = Utils.readFromFile(stateFilename);
+        String databaseParsed = Utils.readFromFile(databaseFilename);
+
+        int transactionCount = Utils.jsonArrayParser(transactionsParsed).size();
+        int hashOfState = stateParsed.hashCode();
+        int hashOfDatabase = databaseParsed.hashCode();
+
+        Map<String,String> mapResult = new HashMap<String,String>();
+
+        mapResult.put("transactionCount", String.valueOf(transactionCount));
+        mapResult.put("hashOfSatte", String.valueOf(hashOfState));
+        mapResult.put("hashOfDatabase", String.valueOf(hashOfDatabase));
+
+        return Utils.jsonSerializer(mapResult);
     }
 
     public static Union<ExecuteResult, DeployResult> transactionRunner(Map<String,String> transaction, String databaseFilename) throws Exception {
