@@ -74,7 +74,7 @@ public class PeerNode {
         return response;
     }
 
-    public String ping(String transactionsFilename, String stateFilename, String databaseFilename) throws FileNotFoundException {
+    public static String ping(String transactionsFilename, String stateFilename, String databaseFilename) throws FileNotFoundException {
         
         String transactionsParsed = Utils.readFromFile(transactionsFilename);
         String stateParsed  = Utils.readFromFile(stateFilename);
@@ -87,7 +87,7 @@ public class PeerNode {
         Map<String,String> mapResult = new HashMap<String,String>();
 
         mapResult.put("transactionCount", String.valueOf(transactionCount));
-        mapResult.put("hashOfSatte", String.valueOf(hashOfState));
+        mapResult.put("hashOfState", String.valueOf(hashOfState));
         mapResult.put("hashOfDatabase", String.valueOf(hashOfDatabase));
 
         return Utils.jsonSerializer(mapResult);
@@ -190,6 +190,8 @@ public class PeerNode {
         System.out.println(keyValueMap); */
         
 
-        System.out.println(allTransactionsRunner("Transactions.json", "Database.json", "Receipts.json"));
+        //System.out.println(allTransactionsRunner("Transactions.json", "Database.json", "Receipts.json"));
+    
+        System.out.println(ping("Transactions.json", "State.json", "Database.json"));
     }
 }
