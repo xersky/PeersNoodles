@@ -17,6 +17,7 @@ public class PeerNode {
     private Socket clientSocket;
     private PrintWriter output;
     private BufferedReader input;
+    private GlobalState globalState = new GlobalState();
 
     public void startServer(int port) throws IOException {
 
@@ -74,15 +75,10 @@ public class PeerNode {
         return response;
     }
 
-    public static String ping(String transactionsFilename, String stateFilename, String databaseFilename) throws FileNotFoundException {
-        
-        String transactionsParsed = Utils.readFromFile(transactionsFilename);
-        String stateParsed  = Utils.readFromFile(stateFilename);
-        String databaseParsed = Utils.readFromFile(databaseFilename);
-
-        int transactionCount = Utils.jsonArrayParser(transactionsParsed).size();
-        int hashOfState = stateParsed.hashCode();
-        int hashOfDatabase = databaseParsed.hashCode();
+    public String ping(){
+        int transactionCount = globalState.getTransactions().size();
+        int hashOfState = globalState.getState().hashCode();
+        int hashOfDatabase = globalState.getDatabase().hashCode();
 
         Map<String,String> mapResult = new HashMap<String,String>();
 
@@ -91,6 +87,21 @@ public class PeerNode {
         mapResult.put("hashOfDatabase", String.valueOf(hashOfDatabase));
 
         return Utils.jsonSerializer(mapResult);
+    }
+
+    public String transaction(PeerNode pNode) {
+        System.out.println("Sending Transactions...");
+        //TODO send a batch of transactions to a random peer/node
+
+        return (this.globalState.calculateStateRoot() == pNode.sendStateRoot() ? "Synced Node" : "Falsy Node");
+    }
+
+    public List<Map<String,String>> sendTransactions(){
+        return globalState.getTransactions();
+    }
+
+    public int sendStateRoot(){
+        return globalState.calculateStateRoot();
     }
 
     public static Union<ExecuteResult, DeployResult> transactionRunner(Map<String,String> transaction, String databaseFilename) throws Exception {
@@ -192,6 +203,11 @@ public class PeerNode {
 
         //System.out.println(allTransactionsRunner("Transactions.json", "Database.json", "Receipts.json"));
     
-        System.out.println(ping("Transactions.json", "State.json", "Database.json"));
+        PeerNode pNode = new PeerNode();
+       // System.out.println(pNode.globalState.calculateStateRoot());
+
+        System.out.println(pNode.ping());
+
+        //System.out.println(Utils.readFromFile("Receipts.json"));
     }
 }
