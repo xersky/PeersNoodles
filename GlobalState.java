@@ -7,7 +7,8 @@ public class GlobalState {
     private Map<String,String> state;
     private Map<String,String> database;
 
-    private GlobalState() {
+    public GlobalState(){
+        initState();
     }
 
     public List<Map<String, String>> getTransactions() {
@@ -23,5 +24,23 @@ public class GlobalState {
 
     public Map<String, String> getDatabase() {
         return database;
+    }
+
+    public void initState() {
+        ConfigSingeleton config = ConfigSingeleton.getInstance();
+
+        String transactionsString = Utils.readFromFile(config.getTransactionsFilename());
+        String receiptsString = Utils.readFromFile(config.getReceiptsFilename());
+        String stateString = Utils.readFromFile(config.getStateFilename());
+        String databaseString = Utils.readFromFile(config.getDatabaseFilename());
+
+        this.transactions = Utils.jsonArrayParser(transactionsString);
+        this.receipts = Utils.jsonArrayParser(receiptsString);
+        this.state = Utils.jsonParser(stateString);
+        this.database = Utils.jsonParser(databaseString);
+    }
+
+    public int calculateStateRoot() {
+        return state.hashCode() ^ database.hashCode();
     }
 }
