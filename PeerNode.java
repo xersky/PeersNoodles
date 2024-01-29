@@ -1,16 +1,13 @@
 import java.io.BufferedReader;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Scanner;
 
 public class PeerNode {
     private ServerSocket serverSocket;
@@ -19,7 +16,7 @@ public class PeerNode {
     private BufferedReader input;
     private GlobalState globalState = new GlobalState();
 
-    public void startServer(int port) throws IOException {
+    public void startServer(int port) throws Exception {
 
         serverSocket = new ServerSocket(port);
         System.out.println("Node started");
@@ -30,15 +27,32 @@ public class PeerNode {
 
         input = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
         output = new PrintWriter(clientSocket.getOutputStream(),true);
-
         String message = "";
-
-        while(!"stop".equals(message)) {
+        while(true) {
             message = input.readLine();
-            System.out.println(message);
-            output.println(message);
+            switch (message) {
+                case "stop":
+                    stopServer();
+                    return;
+                case "ping":
+                    System.out.println("Sending Transactions Count and State Root...");
+                    output.println(pingResponse());
+                    break;
+                case "transaction":
+                    sendMessage(transactionResponse());
+                    break;
+                case "sync":
+                    System.out.println("Sending Transactions...");
+                    output.println(Utils.jsonArraySerializer(globalState.getTransactions()));
+                    break;
+                default:
+                    if(!message.isEmpty()) {
+                        System.out.println(message);
+                    }
+                    break;
+            }
         }
-        stopServer();
+       
     }
 
     public void stopServer() throws IOException {
@@ -48,19 +62,39 @@ public class PeerNode {
         output.close();
     }
 
-    public void startConnection(String ipAddress, int port) throws UnknownHostException, IOException {
+    public void startConnection(String ipAddress, int port) throws Exception {
         clientSocket = new Socket(ipAddress, port);
         System.out.println("You are Connected!");
+
         input = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
         output = new PrintWriter(clientSocket.getOutputStream(), true);
-        try (Scanner sc = new Scanner(System.in)) {
-            String message = "";
-            while (!"stop".equals(message)) {
-                message = sc.nextLine();
-                sendMessage(message);
-            }
+
+        Map<String, String> pingResponse = Utils.jsonParser(sendMessage("ping"));
+        
+        if(!pingResponse.isEmpty()){
+            output.println("Transactions Count & State Root Received from Node " + clientSocket.getLocalPort());
+            System.out.println("Ping Response: " + pingResponse);
         }
-        closeConnection();
+
+        Boolean isMatchingStateRoot = String.valueOf(this.globalState.calculateStateRoot()).equals(pingResponse.get("stateRoot"));
+        Boolean isMatchingTxCount = Integer.parseInt(pingResponse.get("txCount")) == globalState.getTransactions().size();
+        
+        if(!isMatchingStateRoot && isMatchingTxCount) System.out.println("Valid Node!");   
+        else {
+            System.out.println("Faulty Node!");
+            System.out.println("Syncing...");
+            String transactionResponse = sendMessage("sync");
+            if(!transactionResponse.isEmpty()){
+                output.println("Transactions Received from Node " + clientSocket.getLocalPort());
+                System.out.println("Sync Response: " + transactionResponse);
+            }
+            output.println("stop");
+        } 
+    }
+
+    public void syncStateFromNode(Socket node){
+        
+        
     }
 
     public void closeConnection() throws IOException {
@@ -75,36 +109,35 @@ public class PeerNode {
         return response;
     }
 
-    public String ping(){
+    public String pingResponse(){
         int transactionCount = globalState.getTransactions().size();
-        int hashOfState = globalState.getState().hashCode();
-        int hashOfDatabase = globalState.getDatabase().hashCode();
+        int stateRoot = globalState.calculateStateRoot();
 
         Map<String,String> mapResult = new HashMap<String,String>();
 
-        mapResult.put("transactionCount", String.valueOf(transactionCount));
-        mapResult.put("hashOfState", String.valueOf(hashOfState));
-        mapResult.put("hashOfDatabase", String.valueOf(hashOfDatabase));
+        mapResult.put("txCount", String.valueOf(transactionCount));
+        mapResult.put("stateRoot", String.valueOf(stateRoot));
 
         return Utils.jsonSerializer(mapResult);
     }
 
-    public String transaction(PeerNode pNode) {
-        System.out.println("Sending Transactions...");
-        //TODO send a batch of transactions to a random peer/node
-
-        return (this.globalState.calculateStateRoot() == pNode.sendStateRoot() ? "Synced Node" : "Falsy Node");
+    private String transactionResponse() throws Exception {
+        String txBatch = sendMessage("Awaiting...");
+        List<Map<String, String>> txObjects = Utils.jsonArrayParser(txBatch);
+        return String.valueOf(allTransactionsRunner(txObjects));
     }
 
-    public List<Map<String,String>> sendTransactions(){
-        return globalState.getTransactions();
+    public String transactionRequest() throws Exception {
+        String responseAwating = sendMessage("Sending Transactions...");
+        if("Awating...".equals(responseAwating)){
+            String transactionsSerialized = Utils.jsonArraySerializer(globalState.getTransactions());
+            String nodeStateRoot = sendMessage(transactionsSerialized);
+            return (String.valueOf(this.globalState.calculateStateRoot()).equals(nodeStateRoot) ? "Valid Node" : "Faulty Node");
+        }
+        throw new Exception("Invalid Response");
     }
 
-    public int sendStateRoot(){
-        return globalState.calculateStateRoot();
-    }
-
-    public static Union<ExecuteResult, DeployResult> transactionRunner(Map<String,String> transaction, String databaseFilename) throws Exception {
+    public Union<ExecuteResult, DeployResult> transactionRunner(Map<String,String> transaction) throws Exception {
         VirtualMachine vm = new VirtualMachine();
         String id = transaction.get("id");
         String messageType = transaction.get("messageType");
@@ -114,8 +147,7 @@ public class PeerNode {
         System.out.println(messageType);
 
         byte[] byteArray = Utils.hexStringParser(byteCode);
-        String databaseString = new String(Utils.readFromFile(databaseFilename));
-        Map<String,String> databaseMap = Utils.jsonParser(databaseString);
+        Map<String,String> databaseMap = globalState.getDatabase();
 
         switch (messageType) { 
             case "Execute":
@@ -127,31 +159,25 @@ public class PeerNode {
                 }
 
             case "Deploy":
-                System.out.println("Deploying");
                 try {
+                    System.out.println("Deploying");
                     databaseMap.put(String.valueOf(byteCode.hashCode()), byteCode);
-                    databaseString = Utils.jsonSerializer(databaseMap);
-                    PrintWriter out = new PrintWriter(databaseFilename); 
-                    out.println(databaseString);
-                    out.close();
                     return Union.fromRight(DeployResult.fromResult(Integer.parseInt(id), byteArray.hashCode()));
                 } catch (Exception e) {
                     return Union.fromRight(DeployResult.fromError(Integer.parseInt(id), e.getMessage()));
                 }
 
             default:
-                throw new Exception("No transaction found!");
+                throw new Exception("Invalid message type!");
         }
     }
 
-    public static int allTransactionsRunner(String transactionsFilename, String databaseFilename, String receiptsFilename) throws Exception {
-        String transactionJson = Utils.readFromFile(transactionsFilename);
-        List<Map<String,String>> transactions = Utils.jsonArrayParser(transactionJson);
+    public int allTransactionsRunner(List<Map<String,String>> transactions) throws Exception{
         var receipts = new ArrayList<Union<ExecuteResult,DeployResult>>();
-        List<Map<String,String>> listOfReceipts = new ArrayList<Map<String,String>>();
+        List<Map<String,String>> listOfReceipts = globalState.getReceipts();
 
         for(Map<String,String> transaction : transactions) {
-            receipts.add(transactionRunner(transaction, databaseFilename));
+            receipts.add(transactionRunner(transaction));
         }
 
         for(Union<ExecuteResult,DeployResult> union : receipts) {
@@ -172,42 +198,15 @@ public class PeerNode {
             listOfReceipts.add(mapOfReceipt);
         }
 
-        String receiptsString = Utils.jsonArraySerializer(listOfReceipts);
+        globalState.getReceipts().addAll(listOfReceipts);
 
-        try {
-            PrintWriter out = new PrintWriter(receiptsFilename); 
-            out.println(receiptsString);
-            out.close();
-        } catch (Exception e) {
-            throw new Exception(e.getMessage());
-        }
-
-        System.out.println(receiptsString);
-        
-        return Utils.readFromFile(databaseFilename).hashCode();
+        return globalState.calculateStateRoot();
     }
 
     public static void main(String[] args) throws Exception {
+        PeerNode masterNode = new PeerNode();
 
-/*         byte[] bytecode = {00,00,00,00,04,0x1C,0x08};
-        VirtualMachine vm = new VirtualMachine();
+        masterNode.startServer(42069);
 
-        System.out.println(vm.byteInterpreter(bytecode)); */
-        
-/*         String json = "{\"transactionType\":\"Deploy\",\"result\":\"189568618\",\"id\":\"0\",\"isSuccess\":\"true\"}";
-
-        Map<String,String> keyValueMap = Utils.jsonParser(json);
-
-        System.out.println(keyValueMap); */
-        
-
-        //System.out.println(allTransactionsRunner("Transactions.json", "Database.json", "Receipts.json"));
-    
-        PeerNode pNode = new PeerNode();
-       // System.out.println(pNode.globalState.calculateStateRoot());
-
-        System.out.println(pNode.ping());
-
-        //System.out.println(Utils.readFromFile("Receipts.json"));
     }
 }
