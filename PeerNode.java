@@ -42,8 +42,10 @@ public class PeerNode {
                     sendMessage(transactionResponse());
                     break;
                 case "sync":
-                    System.out.println("Sending Transactions...");
-                    output.println(Utils.jsonArraySerializer(globalState.getTransactions()));
+                    System.out.println("Sending State...");
+                    output.println(Utils.jsonSerializer(globalState.getState()));
+                    System.out.println("Sending Database...");
+                    output.println(Utils.jsonSerializer(globalState.getDatabase()));
                     break;
                 default:
                     if(!message.isEmpty()) {
@@ -79,14 +81,19 @@ public class PeerNode {
         Boolean isMatchingStateRoot = String.valueOf(this.globalState.calculateStateRoot()).equals(pingResponse.get("stateRoot"));
         Boolean isMatchingTxCount = Integer.parseInt(pingResponse.get("txCount")) == globalState.getTransactions().size();
         
-        if(!isMatchingStateRoot && isMatchingTxCount) System.out.println("Valid Node!");   
+        if(isMatchingStateRoot && isMatchingTxCount) System.out.println("Synced Node!");   
         else {
             System.out.println("Faulty Node!");
             System.out.println("Syncing...");
-            String transactionResponse = sendMessage("sync");
-            if(!transactionResponse.isEmpty()){
-                output.println("Transactions Received from Node " + clientSocket.getLocalPort());
-                System.out.println("Sync Response: " + transactionResponse);
+            String stateResponse = sendMessage("sync");
+            String databaseResponse = input.readLine();
+            if(!stateResponse.isEmpty()){
+                output.println("State Received from Node " + clientSocket.getLocalPort());
+                System.out.println("Sync State Response: " + stateResponse);
+            }
+            if(!databaseResponse.isEmpty()){
+                output.println("Database Received from Node " + clientSocket.getLocalPort());
+                System.out.println("Sync Database Response: " + databaseResponse);
             }
             output.println("stop");
         } 
