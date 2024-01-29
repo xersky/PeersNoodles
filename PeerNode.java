@@ -11,9 +11,9 @@ import java.util.Map;
 
 public class PeerNode {
     private ServerSocket serverSocket;
-    private Socket clientSocket;
-    private PrintWriter output;
-    private BufferedReader input;
+    private List<Socket> clientSockets = new ArrayList<>();;
+    private List<PrintWriter> outputs = new ArrayList<>();;
+    private List<BufferedReader> inputs = new ArrayList<>();;
     private GlobalState globalState = new GlobalState();
 
     public void startServer(int port) throws Exception {
@@ -22,11 +22,32 @@ public class PeerNode {
         System.out.println("Node started");
         System.out.println("Waiting for a peer ...");
 
-        clientSocket = serverSocket.accept();
-        System.out.println("A Peer has Connected");
+        while(true) {
+            Socket clientSocket = serverSocket.accept();
+            clientSockets.add(clientSocket);
 
-        input = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-        output = new PrintWriter(clientSocket.getOutputStream(),true);
+            System.out.println("A Peer has Connected");
+
+            BufferedReader input = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+            inputs.add(input);
+
+            PrintWriter output = new PrintWriter(clientSocket.getOutputStream(),true);
+            outputs.add(output);
+
+            output.println(clientSockets);
+
+            Thread clientHandlingThread = new Thread(() -> {
+                try {
+                    handleClient(clientSocket, input, output);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            });
+            clientHandlingThread.start();
+        }
+    }
+
+    public void handleClient(Socket clientSocket, BufferedReader input, PrintWriter output) throws Exception {
         String message = "";
         while(true) {
             message = input.readLine();
@@ -39,7 +60,7 @@ public class PeerNode {
                     output.println(pingResponse());
                     break;
                 case "transaction":
-                    sendMessage(transactionResponse());
+                    //sendMessage(input, output, transactionResponse());
                     break;
                 case "sync":
                     System.out.println("Sending Transactions...");
@@ -52,24 +73,23 @@ public class PeerNode {
                     break;
             }
         }
-       
     }
 
     public void stopServer() throws IOException {
-        clientSocket.close();
         serverSocket.close();
-        input.close();
-        output.close();
     }
 
     public void startConnection(String ipAddress, int port) throws Exception {
-        clientSocket = new Socket(ipAddress, port);
+        Socket clientSocket = new Socket(ipAddress, port);
         System.out.println("You are Connected!");
 
-        input = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-        output = new PrintWriter(clientSocket.getOutputStream(), true);
+        BufferedReader input = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+        PrintWriter output = new PrintWriter(clientSocket.getOutputStream(), true);
 
-        Map<String, String> pingResponse = Utils.jsonParser(sendMessage("ping"));
+        String listOfNodes = input.readLine();
+        System.out.println("List of Nodes: " + listOfNodes);
+
+        Map<String, String> pingResponse = Utils.jsonParser(sendMessage(input, output, "ping"));
         
         if(!pingResponse.isEmpty()){
             output.println("Transactions Count & State Root Received from Node " + clientSocket.getLocalPort());
@@ -83,7 +103,7 @@ public class PeerNode {
         else {
             System.out.println("Faulty Node!");
             System.out.println("Syncing...");
-            String transactionsResponse = sendMessage("sync");
+            String transactionsResponse = sendMessage(input, output, "sync");
             if(!transactionsResponse.isEmpty()){
                 output.println("Transactions Received from Node " + clientSocket.getLocalPort());
                 System.out.println("Sync Transactions Response: " + transactionsResponse);
@@ -91,17 +111,19 @@ public class PeerNode {
                 System.out.println("Transaction count: " + transactions.size());
                 System.out.println("Running Transactions Result (StateRoot): " + allTransactionsRunner(transactions));
             }
-            output.println("stop");
+            //closeConnection(clientSocket, input, output);
+            //output.println("stop");
         } 
+        Thread.sleep(Integer.MAX_VALUE);
     }
 
-    public void closeConnection() throws IOException {
+    public void closeConnection(Socket clientSocket, BufferedReader input, PrintWriter output) throws IOException{
+        clientSocket.close();
         input.close();
         output.close();
-        clientSocket.close();
     }
 
-    public String sendMessage(String message) throws IOException {
+    public String sendMessage(BufferedReader input, PrintWriter output, String message) throws IOException {
         output.println(message);
         String response = input.readLine();
         return response;
@@ -119,7 +141,7 @@ public class PeerNode {
         return Utils.jsonSerializer(mapResult);
     }
 
-    private String transactionResponse() throws Exception {
+/*     private String transactionResponse() throws Exception {
         String txBatch = sendMessage("Awaiting...");
         List<Map<String, String>> txObjects = Utils.jsonArrayParser(txBatch);
         return String.valueOf(allTransactionsRunner(txObjects));
@@ -133,7 +155,7 @@ public class PeerNode {
             return (String.valueOf(this.globalState.calculateStateRoot()).equals(nodeStateRoot) ? "Valid Node" : "Faulty Node");
         }
         throw new Exception("Invalid Response");
-    }
+    } */
 
     public Union<ExecuteResult, DeployResult> transactionRunner(Map<String,String> transaction) throws Exception {
         VirtualMachine vm = new VirtualMachine();
