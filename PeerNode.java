@@ -42,10 +42,8 @@ public class PeerNode {
                     sendMessage(transactionResponse());
                     break;
                 case "sync":
-                    System.out.println("Sending State...");
-                    output.println(Utils.jsonSerializer(globalState.getState()));
-                    System.out.println("Sending Database...");
-                    output.println(Utils.jsonSerializer(globalState.getDatabase()));
+                    System.out.println("Sending Transactions...");
+                    output.println(Utils.jsonArraySerializer(globalState.getTransactions()));
                     break;
                 default:
                     if(!message.isEmpty()) {
@@ -85,23 +83,16 @@ public class PeerNode {
         else {
             System.out.println("Faulty Node!");
             System.out.println("Syncing...");
-            String stateResponse = sendMessage("sync");
-            String databaseResponse = input.readLine();
-            if(!stateResponse.isEmpty()){
-                output.println("State Received from Node " + clientSocket.getLocalPort());
-                System.out.println("Sync State Response: " + stateResponse);
-            }
-            if(!databaseResponse.isEmpty()){
-                output.println("Database Received from Node " + clientSocket.getLocalPort());
-                System.out.println("Sync Database Response: " + databaseResponse);
+            String transactionsResponse = sendMessage("sync");
+            if(!transactionsResponse.isEmpty()){
+                output.println("Transactions Received from Node " + clientSocket.getLocalPort());
+                System.out.println("Sync Transactions Response: " + transactionsResponse);
+                List<Map<String,String>> transactions = Utils.jsonArrayParser(transactionsResponse);
+                System.out.println("Transaction count: " + transactions.size());
+                System.out.println("Running Transactions Result (StateRoot): " + allTransactionsRunner(transactions));
             }
             output.println("stop");
         } 
-    }
-
-    public void syncStateFromNode(Socket node){
-        
-        
     }
 
     public void closeConnection() throws IOException {
