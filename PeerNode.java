@@ -12,10 +12,11 @@ import java.util.Random;
 
 public class PeerNode {
     private ServerSocket serverSocket;
-    private List<Socket> clientSockets = new ArrayList<>();;
-    private List<PrintWriter> outputs = new ArrayList<>();;
-    private List<BufferedReader> inputs = new ArrayList<>();;
+    private List<Socket> clientSockets = new ArrayList<>();
+    private List<PrintWriter> outputs = new ArrayList<>();
+    private List<BufferedReader> inputs = new ArrayList<>();
     private GlobalState globalState = new GlobalState();
+    private List<Map<String,String>> listOfNodes = new ArrayList<>();
 
     public int serverPort = 3333;
     public int generatePort() {
@@ -28,21 +29,19 @@ public class PeerNode {
     public void startServer() throws Exception {
         serverSocket = new ServerSocket(this.generatePort());
         System.out.println("Node started");
-        System.out.println("Waiting for a peer ...");
         System.out.println("Node serverPort: " + this.serverPort);
+        System.out.println("Waiting for a peer ...");
+
         while(true) {
             Socket clientSocket = serverSocket.accept();
             clientSockets.add(clientSocket);
 
             System.out.println("A Peer has Connected");
-
             BufferedReader input = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
             inputs.add(input);
 
             PrintWriter output = new PrintWriter(clientSocket.getOutputStream(),true);
             outputs.add(output);
-
-           // System.out.println(clientSocket);
 
             Thread clientHandlingThread = new Thread(() -> {
                 try {
@@ -56,6 +55,13 @@ public class PeerNode {
     }
 
     public void handleClient(Socket clientSocket, BufferedReader input, PrintWriter output) throws Exception {
+        Map<String,String> connectedNode = Utils.jsonParser(input.readLine());
+        listOfNodes.add(connectedNode);
+
+        System.out.println("List of connected Nodes: " + listOfNodes);
+
+        output.println(Utils.jsonArraySerializer(listOfNodes));
+
         String message = "";
         while(true) {
             message = input.readLine();
@@ -102,10 +108,11 @@ public class PeerNode {
         BufferedReader input = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
         PrintWriter output = new PrintWriter(clientSocket.getOutputStream(), true);
 
-        List<Map<String,String>> listOfNodes = Utils.jsonArrayParser(input.readLine());
+        output.println(Utils.jsonSerializer(currentNode));
 
-        System.out.println("List of Nodes: " + listOfNodes);
-
+        listOfNodes = Utils.jsonArrayParser(input.readLine());
+        listOfNodes.remove(currentNode);
+        System.out.println("nodeX: " + listOfNodes);
         Map<String, String> pingResponse = Utils.jsonParser(sendMessage(input, output, "ping"));
         
         if(!pingResponse.isEmpty()){
@@ -132,9 +139,9 @@ public class PeerNode {
             //output.println("stop");
         } 
 
-/*         for (Map<String,String> map : listOfNodes) {
-            if(!map.equals(currentNode)) startConnection(map.get("address").substring(1), Integer.valueOf(map.get("port")));
-        } */
+        for (Map<String,String> map : listOfNodes) {
+            //startConnection(map.get("address").substring(1), Integer.valueOf(map.get("port")));
+        }
 
         Thread.sleep(Integer.MAX_VALUE);
     }

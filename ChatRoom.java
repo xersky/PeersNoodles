@@ -1,5 +1,3 @@
-import java.util.Random;
-
 public class ChatRoom {
     public static void main(String[] args) throws Exception {
         PeerNode client = new PeerNode();
@@ -20,7 +18,7 @@ public class ChatRoom {
             @Override
             public void run() {
                 try {
-                    client.startConnection("127.0.0.1", 395, client.serverPort);
+                    client.startConnection("127.0.0.1", 2762, client.serverPort);
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
