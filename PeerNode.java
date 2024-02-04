@@ -112,7 +112,7 @@ public class PeerNode {
 
         listOfNodes = Utils.jsonArrayParser(input.readLine());
         listOfNodes.remove(currentNode);
-        System.out.println("nodeX: " + listOfNodes);
+        System.out.println("Lists of Nodes to connect to: " + listOfNodes);
         Map<String, String> pingResponse = Utils.jsonParser(sendMessage(input, output, "ping"));
         
         if(!pingResponse.isEmpty()){
@@ -135,12 +135,10 @@ public class PeerNode {
                 System.out.println("Transaction count: " + transactions.size());
                 System.out.println("Running Transactions Result (StateRoot): " + allTransactionsRunner(transactions));
             }
-            //closeConnection(clientSocket, input, output);
-            //output.println("stop");
         } 
 
         for (Map<String,String> map : listOfNodes) {
-            //startConnection(map.get("address").substring(1), Integer.valueOf(map.get("port")));
+            startConnection(map.get("address").substring(1), Integer.valueOf(map.get("port")), serverPort);
         }
 
         Thread.sleep(Integer.MAX_VALUE);

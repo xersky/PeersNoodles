@@ -18,7 +18,7 @@ public class ChatRoom {
             @Override
             public void run() {
                 try {
-                    client.startConnection("127.0.0.1", 2762, client.serverPort);
+                    client.startConnection("127.0.0.1", 1457, client.serverPort);
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
