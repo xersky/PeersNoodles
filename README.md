@@ -233,6 +233,61 @@ Transactions Received from Node 53212
 
 ### Syncing Part
 
+**Handling Clients Function**
+
+```java
+public void handleClient(Socket clientSocket, BufferedReader input, PrintWriter output) throws Exception {
+        Map<String,String> connectedNode = Utils.jsonParser(input.readLine());
+        listOfNodes.add(connectedNode);
+
+        System.out.println("List of connected Nodes: " + listOfNodes);
+
+        output.println(Utils.jsonArraySerializer(listOfNodes));
+
+        String message = "";
+        while(true) {
+            message = input.readLine();
+            switch (message) {
+                case "stop":
+                    stopServer();
+                    return;
+                case "ping":
+                    System.out.println("Sending Transactions Count and State Root...");
+                    output.println(pingResponse());
+                    break;
+                case "sync":
+                    System.out.println("Sending Transactions...");
+                    output.println(Utils.jsonArraySerializer(globalState.getTransactions()));
+                    break;
+                default:
+                    if(!message.isEmpty()) {
+                        System.out.println(message);
+                    }
+                    break;
+            }
+        }
+    }
+```
+
+**Ping Response Function**
+
+`PeerNode.java`
+```java
+    public String pingResponse(){
+        int transactionCount = globalState.getTransactions().size();
+        int stateRoot = globalState.calculateStateRoot();
+
+        Map<String,String> mapResult = new HashMap<String,String>();
+
+        mapResult.put("txCount", String.valueOf(transactionCount));
+        mapResult.put("stateRoot", String.valueOf(stateRoot));
+
+        return Utils.jsonSerializer(mapResult);
+    }
+```
+
+**Syncing**
+
 `PeerNode.java`
 ```java
 
