@@ -17,19 +17,21 @@ The master node serves as the central point for connecting peers and maintaining
 
 The master node broadcasts the list of connected nodes to new peers and ensures synchronization by comparing state roots and transaction counts.
 
+
+___
 ### Chat Room Client (ChatRoom class)
 The chat room client simulates a peer connecting to the network. It connects to the master node, exchanges node information, and checks for synchronization. It retrieves missing transactions from other nodes to achieve consensus.
-
+___
 ### Configuration Singleton (ConfigSingeleton class)
 The ConfigSingeleton class provides a singleton instance for configuration settings. It defines filenames for `transactions`, `state`, `database`, and `receipts`.
-
+___
 ### Global State Manager (GlobalState class)
 The GlobalState class manages the global state of the application, including `transactions`, `receipts`, `state`, and `database` information. It initializes the state from JSON files and parsing its content and calculates the state root based on the stored data.
-
+___
 ### [GenesisVM](https://github.com/xersky/GenesisVM) Submodule 
 
 The GenesisVM is an implementation of a Virtual Machine using Java and acts in our current repo as a submodule to interpret and execute bytecode transactions.
-
+___
 ### Transactions and Receipts
 The `Transactions.json` file contains a sample of transactions with unique identifiers, bytecode, and transaction types ("Deploy" to deploy/store the transaction's bytecode in the `Database.json` file OR "Execute" to execute the transaction's bytecode and store its result in the `Receipts.json` file). 
 
@@ -53,7 +55,7 @@ Node started
 Node serverPort: 8551
 Waiting for a peer ...
 ```
-
+___
 ### Case of Valid/Synced Nodes (Sharing the same State)
 
 Then, we will try to connect to this broadcasting master node by running Nodes in the `ChatRoom` class.
@@ -169,7 +171,7 @@ Lists of Nodes to connect to: []
 Ping Response: {txCount=2, stateRoot=281079501}
 Synced Node!
 ```
-
+___
 ### Case of Faulty / Not Synced Nodes (Not sharing the same state)
 
 We start again by running the orchestrator node:
@@ -230,7 +232,7 @@ Transactions Count & State Root Received from Node 1833
 Sending Transactions...
 Transactions Received from Node 53212
 ```
-
+___
 ### Syncing Part
 
 **Handling Clients Function**
@@ -315,7 +317,7 @@ public void handleClient(Socket clientSocket, BufferedReader input, PrintWriter 
         }
     } 
 ```
-
+___
 ### Running Transactions
 **Function running one transaction**
 
